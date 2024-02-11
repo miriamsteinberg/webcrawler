@@ -1,14 +1,19 @@
-# Use a base image with JRE
-FROM openjdk:11
+# Use an official Maven image as a base image
+FROM maven:3.8.2-openjdk-17
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the JAR file into the container
-COPY target/your-application.jar app.jar
+# Copy the Maven project files
+COPY . .
 
-# Expose the port
-EXPOSE 8080
+# Build the JAR inside the Docker container
+RUN mvn clean package
 
-# Define the command to run your application
-CMD ["java", "-jar", "app.jar"]
+# Your application's runtime image
+FROM openjdk:21-bookworm
+WORKDIR /demoapp
+COPY target/webcrawler-1.0.jar /demoapp/
+
+# Run the application
+CMD ["java", "-jar", "/demoapp/webcrawler-1.0.jar"]
