@@ -15,68 +15,63 @@ import org.springframework.stereotype.Service;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Objects;
 
 @Service
 public class WebPageReader {
 
     private final Logger logger = LoggerFactory.getLogger(WebPageReader.class);
-    private final RedisTemplate<String, String> redisTemplate;
 
+    private final RedisTemplate<String, String> redisTemplate;
     private final KafkaProducer kafkaProducer;
+    private final TsvBatchWriter tsvBatchWriter;
 
     public static String[] PREFIXES = {"https://", "http://"};
 
-    public WebPageReader(RedisTemplate<String, String> redisTemplate, KafkaProducer kafkaProducer) {
+    public WebPageReader(RedisTemplate<String, String> redisTemplate, KafkaProducer kafkaProducer
+            , TsvBatchWriter tsvBatchWriter) {
         this.redisTemplate = redisTemplate;
         this.kafkaProducer = kafkaProducer;
+        this.tsvBatchWriter = tsvBatchWriter;
     }
 
-    private String getValidUrl(String url) {
-        if (isValidURL(url)) {
+    private String getValidUrl(String urlString) {
+        String url = getURL(urlString);
+        if (Strings.isNotBlank(url)) {
             return url;
         }
         for (String prefix : PREFIXES) {
-            if (isValidURL(prefix + url)) {
-                return prefix + url;
+            url = getURL(prefix + urlString);
+            if (Strings.isNotBlank(url)) {
+                return url;
             }
         }
         return null;
     }
 
-    private boolean isValidURL(String url) {
+    private String getURL(String urlString) {
         try {
-            new URL(url).toURI();
-            return true;
-        } catch (MalformedURLException | URISyntaxException e) {
-            return false;
+            URL url = new URL(urlString);
+            String urlPath = (url.getPath().endsWith("/")) ? url.getPath().substring(0, url.getPath().length() - 1) : url.getPath();
+            return url.getProtocol() + "://" + url.getHost() + urlPath;
+        } catch (MalformedURLException e) {
+            return null;
         }
-    }
-
-    private boolean isHtml(String url) {
-//        try {
-//            URLConnection connection = new URL(url).openConnection();
-//            String contentType = connection.getHeaderField("Content-Type");
-//            return contentType != null && contentType.contains("text/html");
-//        } catch (IOException e) {
-//            return false;
-//        }
-        return false;
     }
 
 
     public void findLinks(String url, int depth, int index) {
-        if (index > depth) {
-            return;
-        }
-        String urlValue = redisTemplate.opsForValue().get(url);
-        if (Strings.isNotBlank(urlValue)) {
-            logger.info("Exist link - " + url);
-//            redisTemplate.opsForValue().set(url, "");//TODO - remove
-            return;
-        }
         try {
+            if (index > depth) {
+                return;
+            }
             String validUrl = getValidUrl(url);
-            if (validUrl == null) {
+            if (Strings.isBlank(validUrl)) {
+                return;
+            }
+            String urlValue = redisTemplate.opsForValue().get(validUrl);
+            if (Strings.isNotBlank(urlValue)) {
+                logger.info("Exist link - " + urlValue);
                 return;
             }
 //            if (!isHtml(validUrl)) {
@@ -85,7 +80,7 @@ public class WebPageReader {
 //            }
             Document doc = Jsoup.connect(validUrl).get();
             String html = doc.html();
-            redisTemplate.opsForValue().set(validUrl, html, 60, java.util.concurrent.TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(validUrl, html);
             Document htmlDoc = Jsoup.parse(html);
             int sameDomainLinks = 0;
             String host = new URL(validUrl).getHost();
@@ -94,7 +89,7 @@ public class WebPageReader {
             Elements absoluteLinks = htmlDoc.select("a[href]");
             for (Element link : absoluteLinks) {
                 String absHref = link.attr("abs:href");
-                sameDomainLinks = handleLink(depth, index, host,  absHref);
+                sameDomainLinks += handleLink(depth, index, host, absHref);
             }
 
             // Retrieve and print relative links
@@ -106,20 +101,42 @@ public class WebPageReader {
 
             int totalLinks = absoluteLinks.size() + relativeLinks.size();
             double rank = (double) sameDomainLinks / totalLinks;
+            tsvBatchWriter.addData(validUrl, index, rank);
             logger.info(index + ": URL: " + validUrl + " Depth: " + index + " Ratio: " + rank);
         } catch (Exception e) {
-            logger.error(index + ": Error in link - " + url + " Message - " + e.getMessage());
+            logger.error(index + ": Error in link - " + url, e);
         }
     }
 
-    private int handleLink(int depth, int index,  String host, String href) {
+    private int handleLink(int depth, int index, String host, String href) {
         int sameDomainLinks = 0;
-        if (Strings.isNotBlank(href)) {
-            kafkaProducer.sendMessage(new LinkData(href, depth, index + 1));
-            if (href.contains(host)) {
-                sameDomainLinks++;
-            }
+        String validUrl = getValidUrl(href);
+        if (Strings.isBlank(validUrl)) {
+            return 0;
         }
+
+        if (validUrl.contains(host)) {
+            sameDomainLinks = 1;
+        }
+
+        String urlValue = redisTemplate.opsForValue().get(validUrl);
+        if (Strings.isNotBlank(urlValue)) {
+            logger.info("Exist link - " + urlValue);
+            return sameDomainLinks;
+        }
+        kafkaProducer.sendMessage(new LinkData(validUrl, depth, index + 1));
         return sameDomainLinks;
+    }
+
+
+    private boolean isHtml(String url) {
+//        try {
+//            URLConnection connection = new URL(url).openConnection();
+//            String contentType = connection.getHeaderField("Content-Type");
+//            return contentType != null && contentType.contains("text/html");
+//        } catch (IOException e) {
+//            return false;
+//        }
+        return false;
     }
 }

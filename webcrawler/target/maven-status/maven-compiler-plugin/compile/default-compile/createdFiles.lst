@@ -1,6 +1,8 @@
 com\example\consumer\KafkaConsumer.class
-com\example\producer\KafkaProducer.class
-com\example\webcrawler\WebPageReader.class
+com\example\model\UrlData.class
+com\example\webcrawler\TsvBatchWriter.class
 com\example\Application.class
 com\example\config\WebCrawlerConfig.class
+com\example\producer\KafkaProducer.class
+com\example\webcrawler\WebPageReader.class
 com\example\model\LinkData.class

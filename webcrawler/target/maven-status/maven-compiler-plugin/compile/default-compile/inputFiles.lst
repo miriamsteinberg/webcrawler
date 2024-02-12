@@ -2,5 +2,7 @@ C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\ma
 C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\config\WebCrawlerConfig.java
 C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\model\LinkData.java
 C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\consumer\KafkaConsumer.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\webcrawler\TsvBatchWriter.java
 C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\webcrawler\WebPageReader.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\model\UrlData.java
 C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\producer\KafkaProducer.java

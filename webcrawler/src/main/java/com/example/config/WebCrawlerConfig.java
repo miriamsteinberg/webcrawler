@@ -3,6 +3,7 @@ package com.example.config;
 
 import com.example.model.LinkData;
 import com.example.producer.KafkaProducer;
+import com.example.webcrawler.TsvBatchWriter;
 import com.example.webcrawler.WebPageReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -80,7 +81,7 @@ public class WebCrawlerConfig {
 
     @Bean
     public WebPageReader webPageReader() {
-        return new WebPageReader(redisTemplate(redisConnectionFactory()), new KafkaProducer(kafkaTemplate()));
+        return new WebPageReader(redisTemplate(redisConnectionFactory()), new KafkaProducer(kafkaTemplate()), new TsvBatchWriter());
     }
 
 
