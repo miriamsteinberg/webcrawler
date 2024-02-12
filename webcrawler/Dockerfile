@@ -1,19 +1,18 @@
-# Use an official Maven image as a base image
-FROM maven:3.8.2-openjdk-17
+# Stage 1: Build the application
+FROM maven:3.8.4-openjdk-17 AS build
+WORKDIR ./
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src/ /app/src/
+RUN mvn package -DskipTests
 
-# Set the working directory in the container
+# Stage 2: Create the final image
+FROM openjdk:17
 WORKDIR /app
-
-# Copy the Maven project files
-COPY . .
-
-# Build the JAR inside the Docker container
-RUN mvn clean package
-
-# Your application's runtime image
-FROM openjdk:21-bookworm
-WORKDIR /demoapp
-COPY target/webcrawler-1.0.jar /demoapp/
-
-# Run the application
-CMD ["java", "-jar", "/demoapp/webcrawler-1.0.jar"]
+COPY --from=build /target/vicarius.jar /app
+CMD ["java", "-jar", "vicarius.jar"]
+#FROM openjdk:21
+#WORKDIR /app
+#ADD target/vicarius.jar /app
+#EXPOSE 8080
+#ENTRYPOINT ["java", "-jar", "vicarius.jar"]
