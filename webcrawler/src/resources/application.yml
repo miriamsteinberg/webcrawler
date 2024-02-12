@@ -1,8 +1,13 @@
 spring:
+  redis:
+    host: localhost
+    port: 6379
+#    password: password
   data:
     redis:
-      host=localhost
-      port=6379
+      host: localhost
+      port: 6379
+#      password: password
   kafka:
     consumer:
       bootstrap-servers: localhost:9092

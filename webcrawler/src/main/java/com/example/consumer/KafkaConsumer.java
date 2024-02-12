@@ -24,7 +24,6 @@ public class KafkaConsumer {
 
     @KafkaListener(topics = "url-topic", groupId = "your-group-id")
     public void consumeMessage(String message) {
-//       logger.info("Received message: " + message);
         try {
             LinkData obj = objectMapper.readValue(message, LinkData.class);
             webPageReader.findLinks(obj.getUrl(), obj.getDepth(), obj.getIndex());

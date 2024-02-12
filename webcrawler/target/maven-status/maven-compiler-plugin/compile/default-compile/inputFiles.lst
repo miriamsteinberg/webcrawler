@@ -1,7 +1,6 @@
-C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\try\src\main\java\com\example\config\KafkaConfig.java
-C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\try\src\main\java\com\example\Application.java
-C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\try\src\main\java\com\example\Cmd.java
-C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\try\src\main\java\com\example\consumer\KafkaConsumer.java
-C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\try\src\main\java\com\example\model\LinkData.java
-C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\try\src\main\java\com\example\producer\KafkaProducer.java
-C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\try\src\main\java\com\example\webcrawler\WebPageReader.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\Application.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\config\WebCrawlerConfig.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\model\LinkData.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\consumer\KafkaConsumer.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\webcrawler\WebPageReader.java
+C:\Users\מרים שטינברג\Documents\dev\webcrawler-main\webcrawler\src\main\java\com\example\producer\KafkaProducer.java

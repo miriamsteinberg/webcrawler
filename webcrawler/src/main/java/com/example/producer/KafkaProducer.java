@@ -20,6 +20,5 @@ public class KafkaProducer {
 
     public void sendMessage(LinkData message) {
         kafkaTemplate.send("url-topic", message);
-//        logger.info("Sent message: " + message);
     }
 }

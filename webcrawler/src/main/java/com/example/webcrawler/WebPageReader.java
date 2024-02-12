@@ -5,7 +5,6 @@ import com.example.producer.KafkaProducer;
 import org.apache.logging.log4j.util.Strings;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.DocumentType;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
@@ -13,11 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 
 @Service
 public class WebPageReader {
@@ -56,13 +53,14 @@ public class WebPageReader {
     }
 
     private boolean isHtml(String url) {
-        try {
-            URLConnection connection = new URL(url).openConnection();
-            String contentType = connection.getHeaderField("Content-Type");
-            return contentType != null && contentType.contains("text/html");
-        } catch (IOException e) {
-            return false;
-        }
+//        try {
+//            URLConnection connection = new URL(url).openConnection();
+//            String contentType = connection.getHeaderField("Content-Type");
+//            return contentType != null && contentType.contains("text/html");
+//        } catch (IOException e) {
+//            return false;
+//        }
+        return false;
     }
 
 
@@ -72,14 +70,13 @@ public class WebPageReader {
         }
         String urlValue = redisTemplate.opsForValue().get(url);
         if (Strings.isNotBlank(urlValue)) {
-//            logger.info("Exist link - " + url);
-            redisTemplate.opsForValue().set(url, "");//TODO - remove
+            logger.info("Exist link - " + url);
+//            redisTemplate.opsForValue().set(url, "");//TODO - remove
             return;
         }
         try {
             String validUrl = getValidUrl(url);
             if (validUrl == null) {
-//                logger.warn("Invalid link: " + url);
                 return;
             }
 //            if (!isHtml(validUrl)) {
@@ -88,29 +85,41 @@ public class WebPageReader {
 //            }
             Document doc = Jsoup.connect(validUrl).get();
             String html = doc.html();
-            redisTemplate.opsForValue().set(validUrl, html);
-
+            redisTemplate.opsForValue().set(validUrl, html, 60, java.util.concurrent.TimeUnit.SECONDS);
             Document htmlDoc = Jsoup.parse(html);
-            Elements links = htmlDoc.select("a[href]");
-
-            int totalLinks = links.size();
             int sameDomainLinks = 0;
             String host = new URL(validUrl).getHost();
 
-            for (Element link : links) { // bulk links message
-                String href = link.attr("abs:href");
-                if (Strings.isNotBlank(href)) {
-//                    logger.info((" ".repeat(index)) + index + ": Link: " + href);
-                    kafkaProducer.sendMessage(new LinkData(href, depth, index + 1));
-                    if (href.contains(host)) {
-                        sameDomainLinks++;
-                    }
-                }
+            // Retrieve and print absolute links
+            Elements absoluteLinks = htmlDoc.select("a[href]");
+            for (Element link : absoluteLinks) {
+                String absHref = link.attr("abs:href");
+                sameDomainLinks = handleLink(depth, index, host,  absHref);
             }
+
+            // Retrieve and print relative links
+            Elements relativeLinks = htmlDoc.select("a[href^=/], a[href^=./], a[href^=../]");
+            for (Element link : relativeLinks) {
+                String relHref = link.attr("href");
+                sameDomainLinks += handleLink(depth, index, host, host + relHref);
+            }
+
+            int totalLinks = absoluteLinks.size() + relativeLinks.size();
             double rank = (double) sameDomainLinks / totalLinks;
-            logger.info(index + ": URL: " + url + " Depth: " + index + " Ratio: " + rank);
+            logger.info(index + ": URL: " + validUrl + " Depth: " + index + " Ratio: " + rank);
         } catch (Exception e) {
-//            logger.error(index + ": Error in link - " + url + " Message - " + e.getMessage());
+            logger.error(index + ": Error in link - " + url + " Message - " + e.getMessage());
         }
+    }
+
+    private int handleLink(int depth, int index,  String host, String href) {
+        int sameDomainLinks = 0;
+        if (Strings.isNotBlank(href)) {
+            kafkaProducer.sendMessage(new LinkData(href, depth, index + 1));
+            if (href.contains(host)) {
+                sameDomainLinks++;
+            }
+        }
+        return sameDomainLinks;
     }
 }
